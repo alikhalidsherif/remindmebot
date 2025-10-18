@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  bot:
+    build: .
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-UTC}
+      NOMINATIM_USER_AGENT: ${NOMINATIM_USER_AGENT:-reminder-bot}
+      DATABASE_URL: sqlite+aiosqlite:///data/reminders.db
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
