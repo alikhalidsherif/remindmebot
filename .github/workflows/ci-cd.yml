@@ -1,0 +1,174 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, 'claude/**' ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  DOCKER_IMAGE: telegram-reminder-bot
+  DOCKER_TAG: ${{ github.sha }}
+
+jobs:
+  # Job 1: Run tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run pytest
+      run: |
+        pytest -v --tb=short
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz-test' }}
+
+    - name: Check code formatting (optional)
+      run: |
+        pip install black
+        black --check . || true
+      continue-on-error: true
+
+  # Job 2: Build Docker image
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: false
+        tags: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        load: true
+
+    - name: Test Docker image
+      run: |
+        docker run --rm ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} python -c "import bot.main; print('Import successful')"
+
+    - name: Check image size
+      run: |
+        docker images ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} --format "Image size: {{.Size}}"
+
+    - name: Export Docker image
+      run: |
+        docker save ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} -o /tmp/docker-image.tar
+
+    - name: Upload Docker image artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: docker-image
+        path: /tmp/docker-image.tar
+        retention-days: 7
+
+  # Job 3: Security scan
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download Docker image
+      uses: actions/download-artifact@v4
+      with:
+        name: docker-image
+        path: /tmp
+
+    - name: Load Docker image
+      run: |
+        docker load -i /tmp/docker-image.tar
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+        format: 'table'
+        exit-code: '0'
+        ignore-unfixed: true
+        severity: 'CRITICAL,HIGH'
+
+  # Job 4: Publish Docker image (optional - only on main branch)
+  publish:
+    name: Publish Docker Image
+    runs-on: ubuntu-latest
+    needs: [test, build, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download Docker image
+      uses: actions/download-artifact@v4
+      with:
+        name: docker-image
+        path: /tmp
+
+    - name: Load Docker image
+      run: |
+        docker load -i /tmp/docker-image.tar
+
+    - name: Log in to GitHub Container Registry
+      if: secrets.GHCR_TOKEN != ''
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+
+    - name: Tag and push image
+      if: secrets.GHCR_TOKEN != ''
+      run: |
+        IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ env.DOCKER_IMAGE }}
+        docker tag ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} $IMAGE_NAME:latest
+        docker tag ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} $IMAGE_NAME:${{ github.sha }}
+        docker push $IMAGE_NAME:latest
+        docker push $IMAGE_NAME:${{ github.sha }}
+
+  # Job 5: Deploy notification (optional)
+  deploy-ready:
+    name: Deployment Ready
+    runs-on: ubuntu-latest
+    needs: [test, build, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Deployment notification
+      run: |
+        echo "✅ All checks passed! Ready for deployment."
+        echo ""
+        echo "To deploy to your home server:"
+        echo "1. SSH into your server"
+        echo "2. Pull the latest changes: git pull origin main"
+        echo "3. Run pre-deployment checks: ./pre-deploy-check.sh"
+        echo "4. Deploy: docker-compose up -d"
+        echo ""
+        echo "Monitor deployment: docker-compose logs -f"
