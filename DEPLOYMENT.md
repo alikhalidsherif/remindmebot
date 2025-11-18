@@ -7,7 +7,9 @@ This guide covers deploying the Telegram Reminder Bot to a home server using Doc
 1. [Prerequisites](#prerequisites)
 2. [Quick Start](#quick-start)
 3. [Configuration](#configuration)
-4. [Deployment](#deployment)
+4. [Deployment Options](#deployment-options)
+   - [Manual Deployment](#manual-deployment)
+   - [Automated Deployment (Recommended)](#automated-deployment-recommended)
 5. [Monitoring & Maintenance](#monitoring--maintenance)
 6. [Troubleshooting](#troubleshooting)
 7. [CI/CD Integration](#cicd-integration)
@@ -112,9 +114,89 @@ The `docker-compose.yml` includes:
 - **Log Rotation**: Prevents disk space issues
 - **Persistent Storage**: SQLite database in `./data` directory
 
-## Deployment
+## Deployment Options
 
-### Standard Deployment
+There are two ways to deploy this bot:
+
+1. **Automated Deployment (Recommended)**: Uses GitHub Actions and self-hosted runner for automated, secure deployments
+2. **Manual Deployment**: Traditional Docker Compose deployment
+
+### Automated Deployment (Recommended)
+
+Automated deployment uses GitHub Actions with a self-hosted runner on your home server. This provides:
+
+- ✅ **Secure secret management** via GitHub Secrets (no `.env` files to manage)
+- ✅ **Automated deployments** on every push to main
+- ✅ **Automatic database backups** before each deployment
+- ✅ **Zero-downtime updates** with health checks
+- ✅ **Deployment history** and rollback capability
+
+**Prerequisites:**
+- GitHub repository
+- Self-hosted GitHub Actions runner on your server
+
+**Setup Steps:**
+
+1. **Install Self-Hosted Runner** (one-time setup)
+
+   ```bash
+   # Download and run the automated setup script
+   curl -O https://raw.githubusercontent.com/<username>/remindmebot/main/setup-runner.sh
+   chmod +x setup-runner.sh
+   ./setup-runner.sh
+   ```
+
+   The script will:
+   - Install GitHub Actions runner
+   - Configure it as a system service
+   - Set up Docker permissions
+   - Create helper scripts
+
+2. **Add Secrets to GitHub**
+
+   Go to your repository: Settings → Secrets and variables → Actions
+
+   Add these secrets:
+   - **Required**: `TELEGRAM_BOT_TOKEN` (from @BotFather)
+   - **Optional**: `DEFAULT_TIMEZONE`, `LOG_LEVEL`, `NOMINATIM_USER_AGENT`
+
+3. **Deploy**
+
+   Simply push to the main branch:
+   ```bash
+   git push origin main
+   ```
+
+   Or trigger manually:
+   - Go to Actions tab → "Deploy to Home Server"
+   - Click "Run workflow"
+
+4. **Monitor Deployment**
+
+   Watch the deployment progress in the Actions tab of your repository.
+
+**📖 For detailed instructions, see:** [GITHUB_SECRETS_SETUP.md](GITHUB_SECRETS_SETUP.md)
+
+**Helper Commands:**
+```bash
+# Check runner status
+~/runner-status.sh
+
+# Restart runner
+~/runner-restart.sh
+
+# View bot logs
+docker logs -f telegram-reminder-bot
+
+# Check container status
+docker ps -f name=telegram-reminder-bot
+```
+
+### Manual Deployment
+
+For traditional Docker Compose deployment without CI/CD:
+
+#### Standard Deployment
 
 ```bash
 # Build and start
@@ -127,7 +209,7 @@ docker-compose ps
 docker-compose logs -f bot
 ```
 
-### Building from Scratch
+#### Building from Scratch
 
 ```bash
 # Rebuild image
@@ -137,7 +219,7 @@ docker-compose build --no-cache
 docker-compose up -d --force-recreate
 ```
 
-### Updating the Bot
+#### Updating the Bot
 
 ```bash
 # Pull latest code
@@ -147,8 +229,27 @@ git pull origin main
 docker-compose down
 docker-compose up -d --build
 
-# Or use the update script (if created)
+# Or use the update script
 ./update.sh
+```
+
+#### Using Makefile Commands
+
+```bash
+# Deploy (with pre-checks)
+make deploy
+
+# Update
+make update
+
+# View logs
+make logs
+
+# Check status
+make status
+
+# Backup database
+make backup
 ```
 
 ## Monitoring & Maintenance

@@ -53,3 +53,59 @@ pytest
 ## Configuration
 
 Configuration is managed via environment variables (see `bot/config.py`). By default, the bot stores data in `data/reminders.db`; override with `DATABASE_URL` if required.
+
+## Deployment
+
+This bot can be deployed in two ways:
+
+### Option 1: Automated Deployment (Recommended)
+
+Use GitHub Actions with a self-hosted runner for secure, automated deployments:
+
+- ✅ Secrets managed securely via GitHub Secrets
+- ✅ Automated deployments on every push
+- ✅ Zero-downtime updates with health checks
+- ✅ Automatic database backups
+
+**Quick Setup:**
+```bash
+# 1. Install self-hosted runner
+./setup-runner.sh
+
+# 2. Add TELEGRAM_BOT_TOKEN to GitHub Secrets
+# (Settings → Secrets and variables → Actions)
+
+# 3. Push to main branch
+git push origin main
+```
+
+**📖 Detailed Guide:** [GITHUB_SECRETS_SETUP.md](GITHUB_SECRETS_SETUP.md)
+
+### Option 2: Manual Deployment
+
+Use Docker Compose for traditional deployment:
+
+```bash
+# 1. Configure environment
+cp .env.example .env
+nano .env  # Add your TELEGRAM_BOT_TOKEN
+
+# 2. Run pre-deployment checks
+./pre-deploy-check.sh
+
+# 3. Deploy
+make deploy
+# or: docker-compose up -d
+```
+
+**📖 Detailed Guide:** [DEPLOYMENT.md](DEPLOYMENT.md)
+
+### Quick Commands
+
+```bash
+make deploy   # Full deployment with checks
+make update   # Update and restart
+make logs     # View logs
+make status   # Check status
+make backup   # Backup database
+```
