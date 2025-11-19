@@ -187,6 +187,15 @@ def create_database(config: Config) -> Database:
     """Create the async engine and the session factory."""
 
     engine = create_async_engine(config.database_url, future=True, echo=False)
+
+    # Enable foreign keys for SQLite
+    @event.listens_for(engine.sync_engine, "connect")
+    def _set_sqlite_pragma(dbapi_connection: Any, connection_record: Any) -> None:
+        """Enable foreign key constraints for SQLite."""
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     return Database(engine=engine, session_factory=session_factory)
 
@@ -203,11 +212,3 @@ async def get_session(database: Database) -> AsyncIterator[AsyncSession]:
 
     async with database.session_factory() as session:
         yield session
-
-
-@event.listens_for(AsyncSession, "after_begin")
-def _pragma_foreign_keys(session: AsyncSession, transaction: Any, connection: Any) -> None:
-    """Ensure SQLite enforces foreign keys."""
-
-    if connection.dialect.name == "sqlite":
-        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
