@@ -19,10 +19,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create data directory
+      - name: Create and fix data directory permissions
         run: |
           mkdir -p ./data
-          chmod 755 ./data
+          # Ensure the data directory is writable by the container's botuser
+          # We need to make it writable since the container runs as non-root
+          chmod 777 ./data
+          echo "✓ Data directory created with permissions: $(ls -ld ./data)"
 
       # CRITICAL: Create .env file from GitHub Secrets
       - name: Create .env file from secrets
@@ -102,13 +105,15 @@ jobs:
       - name: Run new container
         run: |
           echo "Starting new container..."
+          # Run as current user to avoid permission issues with mounted volumes
           docker run -d \
             --name telegram-reminder-bot \
             --restart unless-stopped \
+            --user $(id -u):$(id -g) \
             --env-file ./.env \
             -v $(pwd)/data:/data \
             telegram-reminder-bot:${{ github.sha }}
-          echo "✓ Container started successfully"
+          echo "✓ Container started successfully (running as UID=$(id -u) GID=$(id -g))"
 
       - name: Wait for container to be healthy
         run: |

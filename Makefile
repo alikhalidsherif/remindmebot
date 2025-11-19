@@ -1,5 +1,9 @@
 .PHONY: help build up down restart logs status clean check test deploy update backup
 
+# Export UID and GID for docker-compose to avoid permission issues
+export UID := $(shell id -u)
+export GID := $(shell id -g)
+
 help: ## Show this help message
 	@echo 'Usage: make [target]'
 	@echo ''
