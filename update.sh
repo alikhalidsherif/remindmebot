@@ -5,6 +5,10 @@
 
 set -e
 
+# Export UID and GID for docker-compose
+export UID=$(id -u)
+export GID=$(id -g)
+
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

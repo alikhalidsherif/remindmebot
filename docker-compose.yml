@@ -7,6 +7,9 @@ services:
       dockerfile: Dockerfile
     container_name: telegram-reminder-bot
     image: telegram-reminder-bot:latest
+    # Run as host user to avoid permission issues with bind mounts
+    # Set UID and GID environment variables: export UID=$(id -u) GID=$(id -g)
+    user: "${UID:-1000}:${GID:-1000}"
     environment:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-UTC}
