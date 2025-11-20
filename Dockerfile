@@ -33,6 +33,10 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy application code
 COPY . .
 
+# Copy and set up entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Create data directory with world-writable permissions
 # This allows any user (when using --user flag) to write to it
 RUN mkdir -p /data && chmod 777 /data
@@ -41,6 +45,5 @@ RUN mkdir -p /data && chmod 777 /data
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import sys; sys.exit(0)"
 
-# Run the bot
-# Note: When deployed, --user flag will override this for security
-CMD ["python", "-m", "bot.main"]
+# Use entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]
