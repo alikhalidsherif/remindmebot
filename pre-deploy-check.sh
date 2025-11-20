@@ -141,10 +141,30 @@ if [ -d "data" ]; then
         print_success "Data directory is writable"
     else
         print_error "Data directory is not writable"
+        print_info "Run: chmod 755 data"
     fi
 else
-    print_warning "Data directory does not exist. It will be created on first run."
-    mkdir -p data 2>/dev/null && print_success "Created data directory" || print_error "Failed to create data directory"
+    print_warning "Data directory does not exist. Creating it now..."
+    if mkdir -p data 2>/dev/null; then
+        print_success "Created data directory"
+        # Ensure the directory has proper permissions for the container user
+        chmod 755 data 2>/dev/null
+
+        # If UID/GID are set, try to set ownership (may require sudo)
+        if [ -n "$UID" ] && [ -n "$GID" ]; then
+            if chown $UID:$GID data 2>/dev/null; then
+                print_success "Set ownership to $UID:$GID"
+            else
+                print_info "Could not set ownership. If you get permission errors, run:"
+                print_info "  sudo chown \$UID:\$GID data"
+            fi
+        else
+            print_info "Set UID and GID environment variables for proper ownership:"
+            print_info "  export UID=\$(id -u) GID=\$(id -g)"
+        fi
+    else
+        print_error "Failed to create data directory"
+    fi
 fi
 
 # Check 6: Port availability (not needed for polling, but good to check)
