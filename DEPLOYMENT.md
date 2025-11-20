@@ -318,11 +318,40 @@ cp ./data/reminders.db ./backups/reminders_$(date +%Y%m%d_%H%M%S).db
 
 ### Database Issues
 
+**Permission errors when creating/opening database:**
+
+The container runs as a non-root user (specified by UID/GID). Ensure the `./data` directory has proper permissions:
+
+**Quick Fix (Recommended):**
 ```bash
-# Check database file
+# Run the automated fix script
+./fix-data-permissions.sh
+
+# Then set environment variables and restart
+export UID=$(id -u) GID=$(id -g)
+docker-compose down
+docker-compose up -d
+```
+
+**Manual Fix:**
+```bash
+# Set proper ownership (use your user's UID/GID)
+export UID=$(id -u) GID=$(id -g)
+sudo chown $UID:$GID data/
+chmod 755 data/
+
+# Restart the container
+docker-compose down
+docker-compose up -d
+```
+
+**Check database file and permissions:**
+
+```bash
+# Check database file on host
 ls -lh data/reminders.db
 
-# Check permissions
+# Check permissions inside container
 docker-compose exec bot ls -la /data
 ```
 
@@ -350,7 +379,8 @@ docker-compose logs --tail=50 bot
 
 | Issue | Solution |
 |-------|----------|
-| Permission denied on data directory | `chmod 755 data` |
+| Permission denied on data directory | `sudo chown $(id -u):$(id -g) data && chmod 755 data` |
+| Unable to open database file | Ensure data directory has correct ownership (see above) |
 | Container constantly restarting | Check bot token is valid |
 | Out of memory errors | Increase Docker memory limits |
 | Database locked | Stop duplicate bot instances |
