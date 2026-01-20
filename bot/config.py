@@ -22,9 +22,6 @@ class Config:
         if self.database_url.startswith("sqlite"):
             # URLs look like ``sqlite+aiosqlite:///path/to/db``
             raw_path = self.database_url.split("///", maxsplit=1)[-1]
-            # Ensure the path is absolute
-            if not raw_path.startswith("/"):
-                raw_path = "/" + raw_path
             return Path(raw_path)
         return None
 
