@@ -39,7 +39,9 @@ jobs:
           echo "# Optional Configuration" >> .env
           echo "DEFAULT_TIMEZONE=${{ secrets.DEFAULT_TIMEZONE || 'UTC' }}" >> .env
           echo "NOMINATIM_USER_AGENT=${{ secrets.NOMINATIM_USER_AGENT || 'reminder-bot' }}" >> .env
-          echo "DATABASE_URL=sqlite+aiosqlite:///data/reminders.db" >> .env
+          # Four slashes keep the SQLite path absolute (/data), so it lands on the
+          # mounted volume instead of /app/data inside the container.
+          echo "DATABASE_URL=sqlite+aiosqlite:////data/reminders.db" >> .env
           echo "LOG_LEVEL=${{ secrets.LOG_LEVEL || 'INFO' }}" >> .env
 
           # Verify .env file was created and is not empty

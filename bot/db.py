@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, AsyncIterator, Optional
 
 from sqlalchemy import (
@@ -22,10 +22,36 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Mapped, declarative_base, mapped_column, relationship
+from sqlalchemy.types import TypeDecorator
 
 from .config import Config
 
 Base = declarative_base()
+
+
+class UTCDateTime(TypeDecorator):
+    """Persist datetimes as UTC and always return timezone-aware values.
+
+    SQLite discards timezone information, so a plain ``DateTime(timezone=True)``
+    column comes back naive and ``astimezone()`` then guesses the host timezone.
+    """
+
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value: datetime | None, dialect) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+
+    def process_result_value(self, value: datetime | None, dialect) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
 
 
 class ReminderStatus(enum.Enum):
@@ -71,10 +97,14 @@ class User(Base):
         back_populates="user", cascade="all, delete-orphan"
     )
     reminders_created: Mapped[list["Reminder"]] = relationship(
-        back_populates="creator", cascade="all"
+        back_populates="creator",
+        cascade="all",
+        foreign_keys="Reminder.creator_id",
     )
     reminders_targeted: Mapped[list["Reminder"]] = relationship(
-        back_populates="target_user", cascade="all"
+        back_populates="target_user",
+        cascade="all",
+        foreign_keys="Reminder.target_user_id",
     )
 
 
@@ -136,12 +166,12 @@ class Reminder(Base):
     time_expression: Mapped[str] = mapped_column(String(255), nullable=False)
     recurrence: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON)
     timezone: Mapped[str] = mapped_column(String(64), nullable=False)
-    next_run_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    next_run_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False, index=True)
     status: Mapped[ReminderStatus] = mapped_column(
         SqlEnum(ReminderStatus), default=ReminderStatus.ACTIVE, nullable=False
     )
     dm: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    last_triggered_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    last_triggered_at: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

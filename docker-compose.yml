@@ -14,7 +14,8 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-UTC}
       NOMINATIM_USER_AGENT: ${NOMINATIM_USER_AGENT:-reminder-bot}
-      DATABASE_URL: sqlite+aiosqlite:///data/reminders.db
+      # Absolute path (four slashes) so the database lives on the mounted volume.
+      DATABASE_URL: sqlite+aiosqlite:////data/reminders.db
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
       - ./data:/data

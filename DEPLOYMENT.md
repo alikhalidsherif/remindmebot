@@ -101,7 +101,7 @@ TELEGRAM_BOT_TOKEN=your_bot_token_here
 DEFAULT_TIMEZONE=UTC                    # Default timezone for users
 NOMINATIM_USER_AGENT=reminder-bot      # User agent for geocoding
 LOG_LEVEL=INFO                          # Logging level
-DATABASE_URL=sqlite+aiosqlite:///data/reminders.db  # Database connection
+DATABASE_URL=sqlite+aiosqlite:////data/reminders.db  # Database connection (absolute path)
 ```
 
 ### Docker Compose Configuration

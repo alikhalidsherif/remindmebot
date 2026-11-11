@@ -4,6 +4,7 @@ import asyncio
 from pathlib import Path
 
 import pytest
+import pytest_asyncio
 
 from bot.config import Config
 from bot.db import create_database, init_db
@@ -16,7 +17,7 @@ def event_loop() -> asyncio.AbstractEventLoop:
     loop.close()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def database(tmp_path: Path):
     db_path = tmp_path / "test-reminders.db"
     config = Config(

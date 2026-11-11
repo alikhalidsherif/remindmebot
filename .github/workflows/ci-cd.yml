@@ -121,6 +121,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, build, security-scan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    env:
+      # The `secrets` context is not allowed in step `if:` expressions, so
+      # evaluate the presence of the optional token here instead.
+      HAS_GHCR_TOKEN: ${{ secrets.GHCR_TOKEN != '' }}
 
     steps:
     - name: Checkout code
@@ -137,7 +141,7 @@ jobs:
         docker load -i /tmp/docker-image.tar
 
     - name: Log in to GitHub Container Registry
-      if: secrets.GHCR_TOKEN != ''
+      if: env.HAS_GHCR_TOKEN == 'true'
       uses: docker/login-action@v3
       with:
         registry: ghcr.io
@@ -145,7 +149,7 @@ jobs:
         password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
 
     - name: Tag and push image
-      if: secrets.GHCR_TOKEN != ''
+      if: env.HAS_GHCR_TOKEN == 'true'
       run: |
         IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ env.DOCKER_IMAGE }}
         docker tag ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} $IMAGE_NAME:latest

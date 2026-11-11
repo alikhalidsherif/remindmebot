@@ -91,6 +91,21 @@ def compute_next_solar_time(
     return SolarComputationResult(when=candidate, event=solar.event, offset=solar.offset)
 
 
+def compute_solar_time_on_date(
+    solar: SolarExpression,
+    tz_name: str,
+    target_date: date,
+    *,
+    location: Location | None = None,
+) -> datetime:
+    """Compute a solar event on one specific date."""
+
+    tz = ZoneInfo(tz_name)
+    return _compute_solar_for_date(
+        solar.event, solar.offset, target_date, tz, location
+    ).astimezone(tz)
+
+
 def _compute_solar_for_date(
     event: str,
     offset: timedelta,

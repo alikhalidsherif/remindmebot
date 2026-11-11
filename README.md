@@ -13,6 +13,23 @@ An asynchronous Telegram bot that provides flexible reminders for individuals an
 - Astral-powered solar event calculations with fallback times
 - Geocoding via OpenStreetMap (Nominatim) for location lookups
 
+## Supported time expressions
+
+`/remind` accepts natural language in `message at <time expression>` form. The
+separator is optional when the time expression is unambiguous
+(`/remind me call mom in 2 hours` works as well).
+
+- **Relative**: `in 30 minutes`, `in 2 hours`, `in 3 days`, `in 2 weeks`, `in 1 month`, `in a year`, `in half an hour`, `in an hour and a half`, `in a couple of days`, `30 minutes from now`, `in 2 days at 5pm`
+- **Day keywords**: `today`, `tomorrow`, `tonight`, `the day after tomorrow`, `next week`, `next month`, `next year`, `end of day`/`eod`, `end of week`/`eow`, `end of month`/`eom`, `end of year`/`eoy`, `this weekend`, `next weekend`
+- **Weekdays**: `monday 9am`, `next monday 9am`, `this friday 5pm`, `coming thursday at 8`, `monday next week 8am`, abbreviations such as `mon`, `wed`, `fri`
+- **Clock times**: `5pm`, `5:30pm`, `17:45`, `17:45:30`, `9am`, `at 8`, `five pm`, `five thirty pm`, `half past five`, `quarter to six`, `5 o'clock pm`, `noon`, `midday`, `midnight`, plus parts of the day (`morning` 09:00, `afternoon` 15:00, `evening` 18:00, `night` 21:00)
+- **Dates**: `2026-12-01`, `2026-12-01 18:30`, `2026-12-01T18:30:00Z`, `december 25`, `december 25 at 9am`, `25 december 2026`, `the 3rd of december at 5pm`, `12/25/2026` (month/day), `25/12/2026` (day/month when the first number is > 12), `the 5th`
+- **Solar events**: `sunrise`, `sunset`, `dawn`, `dusk` with offsets such as `sunset+15m`, optionally anchored to a day (`tomorrow at sunrise`)
+- **Recurring**: `every day at 10:00`, `every morning`, `every night at 11pm`, `every 15 seconds`, `every 30 minutes`, `every 2 hours`, `every weekday at 9am`, `every weekend at 10am`, `every monday and thursday at 9am`, `every 2 weeks on monday at 9am`, `every month on the 1st and 15th at 9am`, `every first monday of the month at 9am`, `every last friday of the month at 18:00`, `every year on december 25 at 9am`, and the shorthand forms `daily at 7:30`, `weekly on monday at 9`, `monthly on the 3rd at 9`, `yearly on july 4 at 10`
+
+Recurring reminders are stored as rules, so the next occurrence is recomputed
+from the stored rule rather than from the original phrase.
+
 ## Requirements
 
 - Python 3.11+
