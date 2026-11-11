@@ -1,8 +1,6 @@
 """Entrypoint for the Telegram reminder bot."""
 from __future__ import annotations
 
-import asyncio
-
 from telegram.ext import Application
 
 from .commands import register
@@ -17,11 +15,14 @@ def main() -> None:
     setup_logging(config)
 
     database = create_database(config)
-    asyncio.run(init_db(database))
 
     scheduler = ReminderScheduler(database=database, config=config)
 
     async def on_startup(application: Application) -> None:
+        # Create the schema on the polling loop. Running ``asyncio.run`` first
+        # closes its loop and leaves ``run_polling`` without a current event
+        # loop on Python 3.11, which crashed the container on startup.
+        await init_db(database)
         scheduler.bind_application(application)
         scheduler.start()
         await scheduler.restore()

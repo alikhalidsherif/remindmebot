@@ -150,17 +150,17 @@ jobs:
           echo "Verifying bot is responding..."
           sleep 10
 
-          # Check if container is still running
-          if [ $(docker ps -q -f name=telegram-reminder-bot) ]; then
-            echo "✓ Bot container is running"
+          STATUS=$(docker inspect --format='{{.State.Status}}' telegram-reminder-bot 2>/dev/null || echo "not_found")
+          RESTARTS=$(docker inspect --format='{{.RestartCount}}' telegram-reminder-bot 2>/dev/null || echo "0")
 
-            # Show last 20 lines of logs
+          if [ "$STATUS" = "running" ] && [ "$RESTARTS" = "0" ]; then
+            echo "✓ Bot container is running (restarts: $RESTARTS)"
             echo ""
             echo "Recent logs:"
-            docker logs --tail=20 telegram-reminder-bot
+            docker logs --tail=30 telegram-reminder-bot
           else
-            echo "ERROR: Bot container stopped unexpectedly"
-            docker logs telegram-reminder-bot
+            echo "ERROR: Bot container is not healthy (status=$STATUS, restarts=$RESTARTS)"
+            docker logs --tail=100 telegram-reminder-bot || true
             exit 1
           fi
 

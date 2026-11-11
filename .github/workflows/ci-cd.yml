@@ -69,7 +69,9 @@ jobs:
 
     - name: Test Docker image
       run: |
-        docker run --rm ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} python -c "import bot.main; print('Import successful')"
+        # Override the bot entrypoint, otherwise it starts polling instead of
+        # running the smoke-test command (and fails without a bot token).
+        docker run --rm --entrypoint python ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} -c "import bot.main; print('Import successful')"
 
     - name: Check image size
       run: |
